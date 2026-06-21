@@ -1389,6 +1389,9 @@ function endVictory(){
 }
 
 // ── COMBAT DRAW ──────────────────────────────────────────────────────
+// multi : qui contrôle ce héros ? ('' en solo). En ligne : 'TOI' pour le tien.
+function heroOwner(i){ if(playerCount<=1) return ''; if(playMode==='online') return i===playerIndex?'TOI':'J'+(i+1); return 'J'+(i+1); }
+function heroMine(i){ return playMode!=='online' || isMyHero(i); }
 function drawCombat(){
   const c=combat; if(!c)return;
   const bg={boss1:['#15152e','#0a0a18'],boss2:['#1f0a0a','#0f0505'],boss3:['#160a1e','#0a0510']}[c.bossId];
@@ -1417,12 +1420,16 @@ function drawCombat(){
     const o=c.order[c.turn], active=o&&o.type==='hero'&&o.idx===i&&c.phase==='choose';
     if(active){ oc.globalAlpha=0.3; circle(x,y+14,18,h.color); oc.globalAlpha=1; }
     drawHero(x,y,h,2,{bob:gtime*3+i,flash:h.flash,ko:!h.alive});
+    const own=heroOwner(i); if(own) text(own,x,y+30,own==='TOI'?h.color:'#94a3b8',5,'center');
     if(c.qte&&c.qte.h===h&&Math.sin(gtime*10)>0) text('!',x,y-34,'#fbbf24',14,'center'); });
 
   drawParticles(); drawFloaters(); drawCombatHUD();
 
   const o=c.order[c.turn];
-  if(o&&o.type==='hero'&&c.phase==='choose'){ const h=c.heroes[o.idx]; if(h&&h.alive){ if(c.targetMode) drawTargetMenu(h); else drawActionMenu(h); } }
+  if(o&&o.type==='hero'&&c.phase==='choose'){ const h=c.heroes[o.idx]; if(h&&h.alive){
+    if(heroMine(o.idx)){ if(c.targetMode) drawTargetMenu(h); else drawActionMenu(h); }
+    else { roundRect(W/2-170,H-170,340,40,6,'rgba(8,8,18,0.92)'); strokeRect(W/2-170,H-170,340,40,h.color,2);
+      text('JOUEUR '+(o.idx+1)+' choisit'+'.'.repeat(1+Math.floor(gtime*2)%3),W/2,H-145,h.color,8,'center'); } } }
 
   if(c.phase==='announce'&&c.cur){ const k=1-clamp(c.timer/1.8,0,1), a=Math.min(1,k*3); oc.globalAlpha=a;
     roundRect(W/2-200,H/2-94,400,52,6,'rgba(8,4,4,0.9)'); strokeRect(W/2-200,H/2-94,400,52,'#dc2626',2);
@@ -1440,7 +1447,9 @@ function drawCombatHUD(){
     roundRect(hx+2,hudY+6,cardW-8,106,4,active?'rgba(124,58,237,0.12)':'rgba(255,255,255,0.03)'); strokeRect(hx+2,hudY+6,cardW-8,106,active?h.color:'#27272a',active?2:1);
     drawHero(hx+20,hudY+34,h,1,{flash:h.flash,ko:!h.alive});
     text(h.name,hx+36,hudY+20,active?h.color:'#cbd5e1',7);
-    if(active&&Math.sin(gtime*8)>0) text('◄ TON TOUR',hx+36,hudY+102,h.color,5);
+    const own=heroOwner(i);
+    if(own){ const mine=own==='TOI'; roundRect(hx+cardW-34,hudY+9,24,12,2,mine?h.color:'#1a1a2e'); text(own,hx+cardW-22,hudY+18,mine?'#0a0a18':'#9ca3af',5,'center'); }
+    if(active&&Math.sin(gtime*8)>0) text(heroMine(i)?'◄ TON TOUR':'◄ J'+(i+1)+' JOUE',hx+36,hudY+102,h.color,5);
     const bw=cardW-48; fillRect(hx+36,hudY+26,bw,9,'#0b0b14'); const hpct=clamp(h.displayHp/h.maxHp,0,1);
     fillRect(hx+37,hudY+27,(bw-2)*hpct,7,hpct>0.5?'#22c55e':hpct>0.25?'#f59e0b':'#ef4444');
     text(`${Math.max(0,Math.round(h.hp))}/${h.maxHp}`,hx+38,hudY+44,'#94a3b8',5);
@@ -1476,7 +1485,9 @@ function drawDodgeQTE(){
   } else { const col=pct>0.4?'#4ade80':pct>0.2?'#f59e0b':'#ef4444'; const sc=easeOutBack(clamp((q.t-q.delay)*6,0,1));
     oc.save(); oc.translate(W/2,H/2-8); oc.scale(sc,sc); oc.font='52px "Press Start 2P", monospace'; oc.textAlign='center'; oc.fillStyle=col; oc.fillText(q.dir,0,18); oc.textAlign='left'; oc.restore();
     fillRect(W/2-120,H/2+18,240,10,'#0b0b14'); fillRect(W/2-119,H/2+19,238*pct,8,col);
-    if(!q.controlled) text('(IA)',W/2,H/2+42,'#64748b',6,'center'); else text('Flèche correcte = esquive',W/2,H/2+42,'#475569',5,'center'); }
+    if(q.controlled) text('Flèche correcte = esquive',W/2,H/2+42,'#475569',5,'center');
+    else if(playMode==='online') text('JOUEUR '+(q.h.index+1)+' esquive'+'.'.repeat(1+Math.floor(gtime*2)%3),W/2,H/2+42,'#94a3b8',6,'center');
+    else text('(IA)',W/2,H/2+42,'#64748b',6,'center'); }
 }
 
 // ── SYNCHRO EN LIGNE (hôte autoritaire pour l'overworld/dialogues/cinématiques ; combat en lockstep) ──
@@ -1526,6 +1537,69 @@ function netClientMirror(dt){
 function netHostBroadcast(dt){
   if(_lastSyncG!==G_state){ _lastSyncG=G_state; if(MIRROR_STATES.includes(G_state)) sendWS({type:'SYNC',s:buildSync()}); }
   if(MIRROR_STATES.includes(G_state)){ _syncAcc+=dt; if(_syncAcc>=0.07){ _syncAcc=0; sendWS({type:'SYNC',s:buildSync()}); } }
+  else if(G_state===STATE.COMBAT && combat){ _syncAcc+=dt; if(_syncAcc>=0.05){ _syncAcc=0; sendWS({type:'CSYNC',c:buildCSync()}); } }
+}
+
+// ── COMBAT EN LIGNE : hôte autoritaire ────────────────────────────────
+// L'hôte simule le combat (seul) et diffuse l'état complet ; le client le reflète
+// à l'identique et n'envoie QUE ses inputs (action de son héros + esquive). Zéro désync.
+let clientQte=null;
+function buildCSync(){
+  const c=combat;
+  return {
+    bossId:c.bossId, phase:c.phase, turn:c.turn, timer:c.timer, order:c.order,
+    heroes:c.heroes.map(h=>({name:h.name,color:h.color,shade:h.shade,hair:h.hair,maxHp:h.maxHp,maxEn:h.maxEn,hp:h.hp,en:h.en,alive:h.alive,status:h.status,index:h.index,displayHp:h.displayHp,ox:h.ox,oy:h.oy,flash:h.flash})),
+    enemies:c.enemies.map(e=>({name:e.name,color:e.color,shade:e.shade,kind:e.kind,isBoss:e.isBoss,maxHp:e.maxHp,hp:e.hp,displayHp:e.displayHp,ox:e.ox,oy:e.oy,flash:e.flash,rage:e.rage,phase2:e.phase2,index:e.index,def:e.def?{name:e.def.name,color:e.def.color,shade:e.def.shade,hair:e.def.hair}:null})),
+    allies:c.allies.map(a=>({name:a.name,color:a.color,shade:a.shade,maxHp:a.maxHp,hp:a.hp,displayHp:a.displayHp,alive:a.alive})),
+    cur:c.cur?{enemyIndex:c.cur.enemy.index,atk:{name:c.cur.atk.name,dir:c.cur.atk.dir},targetIndices:c.cur.targets.map(h=>c.heroes.indexOf(h)),idx:c.cur.idx,unavoid:c.cur.unavoid}:null,
+    qte:c.qte?{heroIndex:c.qte.h.index,dir:c.qte.dir,delay:c.qte.delay,window:c.qte.window,t:c.qte.t,done:c.qte.done}:null,
+    pop:c.pop, banner:c.banner, log:c.log, victory:c.victory, defeat:c.defeat,
+  };
+}
+function applyCSync(s){
+  const old=combat;
+  const heroes2=s.heroes.map(h=>({...h})), enemies2=s.enemies.map(e=>({...e})), allies2=s.allies.map(a=>({...a}));
+  const c={ bossId:s.bossId, phase:s.phase, turn:s.turn, timer:s.timer, order:s.order||[],
+    heroes:heroes2, enemies:enemies2, allies:allies2, pop:s.pop, banner:s.banner, log:s.log||[],
+    victory:s.victory, defeat:s.defeat, act:null, cur:null, qte:null,
+    sel:old?old.sel:0, targetMode:old?old.targetMode:false, selTarget:old?old.selTarget:0, _navTurn:old?old._navTurn:-1, _sent:old?old._sent:false };
+  if(s.cur) c.cur={ enemy:enemies2[s.cur.enemyIndex], atk:s.cur.atk, targets:(s.cur.targetIndices||[]).map(i=>heroes2[i]).filter(Boolean), idx:s.cur.idx, unavoid:s.cur.unavoid };
+  if(s.qte) c.qte={ h:heroes2[s.qte.heroIndex], dir:s.qte.dir, delay:s.qte.delay, window:s.qte.window, t:s.qte.t, done:s.qte.done, controlled:false };
+  if(old){ // chiffres de dégâts + impacts côté client
+    heroes2.forEach((h,i)=>{ const o=old.heroes&&old.heroes[i]; if(o&&h.hp<o.hp-0.5){ const p=heroPos(i,heroes2.length); floater(p.x,p.y-28,String(Math.round(o.hp-h.hp)),'#fecaca',13); burst(p.x,p.y,'#ef4444',10,110); addShake(5,0.2); } });
+    enemies2.forEach((e,i)=>{ const o=old.enemies&&old.enemies[i]; if(o&&e.hp<o.hp-0.5){ const p=enemyPos(i,enemies2.length); floater(p.x,p.y-20,String(Math.round(o.hp-e.hp)),'#fecaca',14); burst(p.x,p.y,'#fca5a5',12,120); } });
+  }
+  combat=c; G_state=STATE.COMBAT;
+}
+function clientCombat(dt){
+  const c=combat; if(!c) return;
+  const o=c.order[c.turn];
+  if(c.phase==='choose' && o && o.type==='hero' && heroMine(o.idx)){
+    if(c._navTurn!==c.turn){ c._navTurn=c.turn; c.sel=0; c.targetMode=false; c.selTarget=0; c._sent=false; }
+    if(!c._sent){ const h=c.heroes[o.idx];
+      if(!c.targetMode){
+        if(jp('ArrowUp')&&c.sel>0)c.sel--; if(jp('ArrowDown')&&c.sel<HERO_ATTACKS.length-1)c.sel++;
+        if(jp('Enter')||jp('Space')){ const atk=HERO_ATTACKS[c.sel];
+          if(atk.cost>h.en){ const p=heroPos(o.idx,c.heroes.length); floater(p.x,p.y-30,'!','#ef4444',10); }
+          else if(atk.effect==='atk_boost_all'||atk.effect==='dodge_boost'){ sendWS({type:'CB_ACT',heroIndex:h.index,sel:c.sel,tgt:-1}); c._sent=true; }
+          else { c.targetMode=true; c.selTarget=0; } }
+      } else {
+        const isAtk=HERO_ATTACKS[c.sel].effect==='damage'; const tgts=isAtk?c.enemies.filter(e=>e.hp>0):c.heroes.filter(x=>x.alive);
+        if(jp('ArrowUp')&&c.selTarget>0)c.selTarget--; if(jp('ArrowDown')&&c.selTarget<tgts.length-1)c.selTarget++;
+        if(jp('Enter')||jp('Space')){ const tg=tgts[c.selTarget]; if(tg){ sendWS({type:'CB_ACT',heroIndex:h.index,sel:c.sel,tgt:isAtk?tg.index:c.heroes.indexOf(tg)}); c.targetMode=false; c._sent=true; } }
+        if(jp('Escape')){ c.targetMode=false; c.selTarget=0; }
+      }
+    }
+  }
+  if(c.phase==='dodge' && c.qte && heroMine(c.qte.h.index)){
+    const key=c.qte.h.index+'_'+c.qte.dir+'_'+c.turn;
+    if(!clientQte || clientQte.key!==key) clientQte={ key, dir:c.qte.dir, delay:c.qte.delay, window:c.qte.window, t:0, done:false };
+    const q=clientQte; if(!q.done){ q.t+=dt; const armed=q.t>=q.delay;
+      if(armed){ for(const code of ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown']) if(jp(code)){ q.done=true; sendWS({type:'CB_DODGE',heroIndex:c.qte.h.index,success:keyToDir(code)===q.dir}); break; } }
+      if(!q.done && armed && q.t>q.delay+q.window){ q.done=true; sendWS({type:'CB_DODGE',heroIndex:c.qte.h.index,success:false}); }
+    }
+    c.qte.t=q.t; c.qte.controlled=true;
+  } else { clientQte=null; }
 }
 
 // ── NETWORK ──────────────────────────────────────────────────────────
@@ -1551,9 +1625,10 @@ function handleWS(m){
     case 'ROOM_JOINED': roomCode=m.code; playerIndex=m.playerIndex; break;
     case 'GAME_START': if(m.totalPlayers) playerCount=m.totalPlayers; startNewGame(); break;
     case 'SYNC': if(CLIENT()) applySync(m.s); break;
-    case 'START_COMBAT': if(CLIENT()){ difficulty=m.diff; ({boss1:startBoss1,boss2:startBoss2,boss3:startBoss3}[m.bossId]||(()=>{}))(); } break;
-    case 'CB_ACT': if(!isMyHero(m.heroIndex)) applyRemoteAct(m); break;
-    case 'CB_DODGE': if(combat && combat.qte && !combat.qte.done && !isMyHero(m.heroIndex) && combat.qte.h.index===m.heroIndex){ applyingRemote=true; resolveDodge(m.success); applyingRemote=false; } break;
+    case 'CSYNC': if(CLIENT()) applyCSync(m.c); break;                 // état de combat (hôte -> client)
+    case 'START_COMBAT': if(CLIENT()) G_state=STATE.COMBAT; break;     // le client attend le CSYNC pour peupler le combat
+    case 'CB_ACT': if(HOST() && !isMyHero(m.heroIndex)) applyRemoteAct(m); break;   // seul l'hôte applique
+    case 'CB_DODGE': if(HOST() && combat && combat.qte && !combat.qte.done && !isMyHero(m.heroIndex) && combat.qte.h.index===m.heroIndex){ applyingRemote=true; resolveDodge(m.success); applyingRemote=false; } break;
     case 'ERROR': roomSub='choose'; break;
   }
 }
@@ -1576,8 +1651,9 @@ function drawGameOver(){
 // ── MAIN LOOP ────────────────────────────────────────────────────────
 function update(dt){
   gtime+=dt; envTime+=dt; updateFade(dt); updateEffects(dt);
-  // CLIENT en ligne : on ne pilote pas l'overworld/dialogues/cinématiques, on reflète l'hôte
+  // CLIENT en ligne : on ne simule pas, on reflète l'hôte et on n'envoie que nos inputs
   if(CLIENT() && MIRROR_STATES.includes(G_state)){ netClientMirror(dt); return; }
+  if(CLIENT() && G_state===STATE.COMBAT){ clientCombat(dt); return; }
   switch(G_state){
     case STATE.TITLE: updateTitle(dt); break;
     case STATE.PLAYER_COUNT: updatePlayerCount(dt); break;

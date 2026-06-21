@@ -111,10 +111,11 @@ wss.on('connection', (ws) => {
         break;
       }
 
-      // Relais : actions de combat + synchro monde (hôte) + démarrage de combat
+      // Relais : actions de combat + synchro monde (hôte) + synchro combat (hôte) + démarrage de combat
       case 'CB_ACT':
       case 'CB_DODGE':
       case 'SYNC':
+      case 'CSYNC':
       case 'START_COMBAT': {
         const room = rooms.get(ws.roomCode);
         if (!room) return;
