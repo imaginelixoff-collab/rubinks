@@ -1479,7 +1479,7 @@ function drawTargetMenu(h){
 function drawDodgeQTE(){
   const c=combat, q=c.qte; if(!q)return; const armed=q.t>=q.delay; const left=q.window-(q.t-q.delay); const pct=armed?clamp(left/q.window,0,1):1;
   roundRect(W/2-180,H/2-92,360,138,8,'rgba(6,6,16,0.94)'); strokeRect(W/2-180,H/2-92,360,138,'#6366f1',2);
-  text('ESQUIVE — '+q.h.name,W/2,H/2-72,q.h.color,9,'center'); text(q.atk.name,W/2,H/2-54,'#fca5a5',q.atk.name.length>22?6:8,'center');
+  text('ESQUIVE — '+q.h.name,W/2,H/2-72,q.h.color,9,'center'); const _an=(q.atk&&q.atk.name)||''; if(_an) text(_an,W/2,H/2-54,'#fca5a5',_an.length>22?6:8,'center');
   if(!armed){ if(Math.sin(q.t*16)>0) text('PRÉPARE-TOI',W/2,H/2-20,'#fbbf24',11,'center'); const tr=lerp(60,18,q.t/q.delay);
     oc.strokeStyle='#f59e0b'; oc.lineWidth=2; oc.beginPath(); oc.arc(W/2,H/2-12,tr,0,TAU); oc.stroke();
   } else { const col=pct>0.4?'#4ade80':pct>0.2?'#f59e0b':'#ef4444'; const sc=easeOutBack(clamp((q.t-q.delay)*6,0,1));
@@ -1552,7 +1552,7 @@ function buildCSync(){
     enemies:c.enemies.map(e=>({name:e.name,color:e.color,shade:e.shade,kind:e.kind,isBoss:e.isBoss,maxHp:e.maxHp,hp:e.hp,displayHp:e.displayHp,ox:e.ox,oy:e.oy,flash:e.flash,rage:e.rage,phase2:e.phase2,index:e.index,def:e.def?{name:e.def.name,color:e.def.color,shade:e.def.shade,hair:e.def.hair}:null})),
     allies:c.allies.map(a=>({name:a.name,color:a.color,shade:a.shade,maxHp:a.maxHp,hp:a.hp,displayHp:a.displayHp,alive:a.alive})),
     cur:c.cur?{enemyIndex:c.cur.enemy.index,atk:{name:c.cur.atk.name,dir:c.cur.atk.dir},targetIndices:c.cur.targets.map(h=>c.heroes.indexOf(h)),idx:c.cur.idx,unavoid:c.cur.unavoid}:null,
-    qte:c.qte?{heroIndex:c.qte.h.index,dir:c.qte.dir,delay:c.qte.delay,window:c.qte.window,t:c.qte.t,done:c.qte.done}:null,
+    qte:c.qte?{heroIndex:c.qte.h.index,dir:c.qte.dir,delay:c.qte.delay,window:c.qte.window,t:c.qte.t,done:c.qte.done,atk:{name:c.qte.atk.name,dir:c.qte.atk.dir}}:null,
     pop:c.pop, banner:c.banner, log:c.log, victory:c.victory, defeat:c.defeat,
   };
 }
@@ -1564,7 +1564,7 @@ function applyCSync(s){
     victory:s.victory, defeat:s.defeat, act:null, cur:null, qte:null,
     sel:old?old.sel:0, targetMode:old?old.targetMode:false, selTarget:old?old.selTarget:0, _navTurn:old?old._navTurn:-1, _sent:old?old._sent:false };
   if(s.cur) c.cur={ enemy:enemies2[s.cur.enemyIndex], atk:s.cur.atk, targets:(s.cur.targetIndices||[]).map(i=>heroes2[i]).filter(Boolean), idx:s.cur.idx, unavoid:s.cur.unavoid };
-  if(s.qte) c.qte={ h:heroes2[s.qte.heroIndex], dir:s.qte.dir, delay:s.qte.delay, window:s.qte.window, t:s.qte.t, done:s.qte.done, controlled:false };
+  if(s.qte) c.qte={ h:heroes2[s.qte.heroIndex], dir:s.qte.dir, delay:s.qte.delay, window:s.qte.window, t:s.qte.t, done:s.qte.done, controlled:false, atk:s.qte.atk||{name:'',dir:s.qte.dir} };
   if(old){ // chiffres de dégâts + impacts côté client
     heroes2.forEach((h,i)=>{ const o=old.heroes&&old.heroes[i]; if(o&&h.hp<o.hp-0.5){ const p=heroPos(i,heroes2.length); floater(p.x,p.y-28,String(Math.round(o.hp-h.hp)),'#fecaca',13); burst(p.x,p.y,'#ef4444',10,110); addShake(5,0.2); } });
     enemies2.forEach((e,i)=>{ const o=old.enemies&&old.enemies[i]; if(o&&e.hp<o.hp-0.5){ const p=enemyPos(i,enemies2.length); floater(p.x,p.y-20,String(Math.round(o.hp-e.hp)),'#fecaca',14); burst(p.x,p.y,'#fca5a5',12,120); } });
