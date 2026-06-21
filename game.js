@@ -180,7 +180,7 @@ const HERO_ATTACKS = [
 const CLOCK_ATTACKS = [
   { name:'Les zommes soit fort',      dir:'←', dmg:20, effect:'atk_debuff_male', dur:2 },
   { name:'Elle est juste mal foutue', dir:'→', dmg:25, effect:'def_debuff_rand'        },
-  { name:"C'est des pbs de comm",     dir:'↑', dmg:15, effect:'confuse'                },
+  { name:"Individu de type mal avec problème de communication", dir:'↑', dmg:15, effect:'confuse' },
   { name:'Mizogénie pro max',         dir:'↓', dmg:35, effect:'all_damage', all:true   },
   { name:'De 8h à 23h',               dir:'←', dmg:20, effect:'skip_turn'              },
   { name:'Notation au faciès',        dir:'→', dmg:30, effect:'double_low_hp'          },
