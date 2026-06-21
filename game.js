@@ -1142,6 +1142,7 @@ function startCombat(enemies, allies, bossId){
   if(HOST()) sendWS({type:'START_COMBAT', bossId, diff:difficulty}); // le client démarre le même combat (lockstep)
 }
 function buildOrder(){
+  combat.round=(combat.round||0)+1;   // identifiant de manche (pour la synchro client)
   combat.order=[];
   combat.heroes.forEach((h,i)=>{ if(h.alive) combat.order.push({type:'hero',idx:i}); });
   // les PNJ alliés sont de simples FIGURANTS : aucun tour, aucune attaque
@@ -1547,7 +1548,7 @@ let clientQte=null;
 function buildCSync(){
   const c=combat;
   return {
-    bossId:c.bossId, phase:c.phase, turn:c.turn, timer:c.timer, order:c.order,
+    bossId:c.bossId, phase:c.phase, turn:c.turn, timer:c.timer, order:c.order, round:c.round, fa:fade.a,
     heroes:c.heroes.map(h=>({name:h.name,color:h.color,shade:h.shade,hair:h.hair,maxHp:h.maxHp,maxEn:h.maxEn,hp:h.hp,en:h.en,alive:h.alive,status:h.status,index:h.index,displayHp:h.displayHp,ox:h.ox,oy:h.oy,flash:h.flash})),
     enemies:c.enemies.map(e=>({name:e.name,color:e.color,shade:e.shade,kind:e.kind,isBoss:e.isBoss,maxHp:e.maxHp,hp:e.hp,displayHp:e.displayHp,ox:e.ox,oy:e.oy,flash:e.flash,rage:e.rage,phase2:e.phase2,index:e.index,def:e.def?{name:e.def.name,color:e.def.color,shade:e.def.shade,hair:e.def.hair}:null})),
     allies:c.allies.map(a=>({name:a.name,color:a.color,shade:a.shade,maxHp:a.maxHp,hp:a.hp,displayHp:a.displayHp,alive:a.alive})),
@@ -1559,7 +1560,7 @@ function buildCSync(){
 function applyCSync(s){
   const old=combat;
   const heroes2=s.heroes.map(h=>({...h})), enemies2=s.enemies.map(e=>({...e})), allies2=s.allies.map(a=>({...a}));
-  const c={ bossId:s.bossId, phase:s.phase, turn:s.turn, timer:s.timer, order:s.order||[],
+  const c={ bossId:s.bossId, phase:s.phase, turn:s.turn, timer:s.timer, round:s.round, order:s.order||[],
     heroes:heroes2, enemies:enemies2, allies:allies2, pop:s.pop, banner:s.banner, log:s.log||[],
     victory:s.victory, defeat:s.defeat, act:null, cur:null, qte:null,
     sel:old?old.sel:0, targetMode:old?old.targetMode:false, selTarget:old?old.selTarget:0, _navTurn:old?old._navTurn:-1, _sent:old?old._sent:false };
@@ -1569,13 +1570,13 @@ function applyCSync(s){
     heroes2.forEach((h,i)=>{ const o=old.heroes&&old.heroes[i]; if(o&&h.hp<o.hp-0.5){ const p=heroPos(i,heroes2.length); floater(p.x,p.y-28,String(Math.round(o.hp-h.hp)),'#fecaca',13); burst(p.x,p.y,'#ef4444',10,110); addShake(5,0.2); } });
     enemies2.forEach((e,i)=>{ const o=old.enemies&&old.enemies[i]; if(o&&e.hp<o.hp-0.5){ const p=enemyPos(i,enemies2.length); floater(p.x,p.y-20,String(Math.round(o.hp-e.hp)),'#fecaca',14); burst(p.x,p.y,'#fca5a5',12,120); } });
   }
-  combat=c; G_state=STATE.COMBAT;
+  combat=c; G_state=STATE.COMBAT; fade.a=s.fa||0; fade.dir=0;   // synchro du fondu (évite l'écran noir en combat)
 }
 function clientCombat(dt){
   const c=combat; if(!c) return;
   const o=c.order[c.turn];
   if(c.phase==='choose' && o && o.type==='hero' && heroMine(o.idx)){
-    if(c._navTurn!==c.turn){ c._navTurn=c.turn; c.sel=0; c.targetMode=false; c.selTarget=0; c._sent=false; }
+    const navKey=(c.round||0)+'_'+c.turn; if(c._navTurn!==navKey){ c._navTurn=navKey; c.sel=0; c.targetMode=false; c.selTarget=0; c._sent=false; }
     if(!c._sent){ const h=c.heroes[o.idx];
       if(!c.targetMode){
         if(jp('ArrowUp')&&c.sel>0)c.sel--; if(jp('ArrowDown')&&c.sel<HERO_ATTACKS.length-1)c.sel++;
