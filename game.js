@@ -823,11 +823,12 @@ function drawRoom(){
     text('CODE DE LA ROOM',W/2,H/2-26,'#94a3b8',8,'center');
     if(roomCode){ oc.shadowColor='#f59e0b'; oc.shadowBlur=16; text(roomCode,W/2,H/2+22,'#fbbf24',28,'center'); oc.shadowBlur=0;
       text('Partage ce code !',W/2,H/2+58,'#94a3b8',7,'center'); text('En attente des joueurs'+'.'.repeat(1+Math.floor(gtime*2)%3),W/2,H/2+78,'#475569',6,'center');
-    } else text('Connexion'+'.'.repeat(1+Math.floor(gtime*2)%3),W/2,H/2+22,'#475569',8,'center');
+    } else { text(netMsg||'Connexion...',W/2,H/2+22,'#fbbf24',7,'center'); text('(Render gratuit : 1er réveil ~30s, c\'est normal)',W/2,H/2+44,'#475569',5,'center'); }
   } else {
     text('ENTRE LE CODE',W/2,H/2-40,'#94a3b8',8,'center');
     roundRect(W/2-66,H/2-22,132,40,4,'#1a1a2e'); strokeRect(W/2-66,H/2-22,132,40,'#6366f1',2);
     text(roomInput.padEnd(4,'_').split('').join(' '),W/2,H/2+6,'#fbbf24',16,'center'); text('ENTRÉE pour confirmer',W/2,H/2+52,'#6b7280',6,'center');
+    if(netMsg) text(netMsg,W/2,H/2+74,'#fbbf24',6,'center');
   }
   text('ÉCHAP  retour',W/2,H-24,'#475569',6,'center');
 }
@@ -1526,11 +1527,20 @@ function netHostBroadcast(dt){
 }
 
 // ── NETWORK ──────────────────────────────────────────────────────────
-function connectWS(onOpen){
-  try{ ws=new WebSocket(WS_URL); ws.onopen=()=>onOpen&&onOpen();
+// Retry auto : sur Render gratuit, le serveur "dort" après 15 min ; la 1re connexion
+// peut échouer ~30-50s le temps du réveil. On réessaie jusqu'à ce qu'il réponde.
+let _wsOnOpen=null, _wsTries=0, netMsg='';
+function connectWS(onOpen){ _wsOnOpen=onOpen; _wsTries=0; netMsg='Connexion...'; _wsConnect(); }
+function _wsConnect(){
+  try{
+    ws=new WebSocket(WS_URL); let opened=false;
+    ws.onopen=()=>{ opened=true; _wsTries=0; netMsg=''; if(_wsOnOpen)_wsOnOpen(); };
     ws.onmessage=e=>{ let m; try{m=JSON.parse(e.data);}catch{return;} handleWS(m); };
-    ws.onclose=()=>{ ws=null; }; ws.onerror=()=>{};
-  }catch(e){}
+    ws.onerror=()=>{};
+    ws.onclose=()=>{ ws=null; if(!opened){
+      if(_wsTries<12){ _wsTries++; netMsg='Réveil du serveur ('+(_wsTries*5)+'s)...'; setTimeout(_wsConnect,5000); }
+      else netMsg='Échec de connexion — réessaie.'; } };
+  }catch(e){ if(_wsTries<12){ _wsTries++; setTimeout(_wsConnect,5000); } }
 }
 function sendWS(m){ if(ws&&ws.readyState===1) ws.send(JSON.stringify(m)); }
 function handleWS(m){
