@@ -461,7 +461,7 @@ function drawPierre(x, y, hp, maxHp, p2, t, noBar) {
   oc.strokeStyle='#7f1d1d'; oc.lineWidth=2; oc.beginPath(); oc.arc(0,-13,5,0.1,Math.PI-0.1); oc.stroke();
   fillRect(-12,20,9,12,suitSh); fillRect(3,20,9,12,suitSh);
   oc.restore();
-  if(!noBar) drawEnemyHpBar(x,y+40,pct,120,p2?'PIERRE — ENRAGÉ':'PIERRE',p2);
+  if(!noBar) drawEnemyHpBar(x,y+40,pct,160,p2?'CE BON VIEUX PIERRE — ENRAGÉ':'CE BON VIEUX PIERRE',p2);
 }
 function drawTraitor(x, y, def, pct, t, opt={}) {
   drawHero(x, y, { color:def.color, shade:def.shade }, 2.4, { bob:t*2+x, flash:opt.flash });
@@ -1131,7 +1131,7 @@ function startBoss2(){
   startCombat(e,[],'boss2');
 }
 // Boss final : Pierre utilise EXCLUSIVEMENT les 8 attaques listées (= CLOCK_ATTACKS)
-function startBoss3(){ const ph=Math.round(600*DIFF().hp); const p=mkCombatant({name:'PIERRE',color:'#7f1d1d',hp:ph,maxHp:ph,attacks:CLOCK_ATTACKS,isBoss:true,kind:'pierre',status:[]},{phase2:false}); startCombat([p],[],'boss3'); }
+function startBoss3(){ const ph=Math.round(600*DIFF().hp); const p=mkCombatant({name:'CE BON VIEUX PIERRE',color:'#7f1d1d',hp:ph,maxHp:ph,attacks:CLOCK_ATTACKS,isBoss:true,kind:'pierre',status:[]},{phase2:false}); startCombat([p],[],'boss3'); }
 function startCombat(enemies, allies, bossId){
   crngState=((hashStr(roomCode||'0000') ^ Math.imul(({boss1:1,boss2:2,boss3:3}[bossId]||1),2654435761))>>>0)||1;
   combat={ bossId, enemies:enemies.map((e,i)=>({...e,index:i})), allies,
