@@ -1157,7 +1157,7 @@ function updateCombat(dt){
   if(!combat)return; const c=combat;
   c.heroes.forEach(h=>{ h.displayHp=lerp(h.displayHp,h.hp,clamp(dt*8,0,1)); if(h.flash>0)h.flash-=dt*3; h.ox*=0.82; h.oy*=0.82; });
   c.enemies.forEach(e=>{ e.displayHp=lerp(e.displayHp,e.hp,clamp(dt*8,0,1)); if(e.flash>0)e.flash-=dt*3; e.ox*=0.82; e.oy*=0.82; });
-  c.allies.forEach(a=>{ a.displayHp=lerp(a.displayHp,a.hp,clamp(dt*8,0,1)); });
+  c.allies.forEach(a=>{ a.displayHp=lerp(a.displayHp,a.hp,clamp(dt*8,0,1)); if(a.ox)a.ox*=0.85; if(a.oy)a.oy*=0.85; });
   if(c.banner){ c.banner.t-=dt; if(c.banner.t<=0)c.banner=null; }
   if(c.pop){ c.pop.t-=dt; if(c.pop.t<=0)c.pop=null; }
 
@@ -1188,9 +1188,10 @@ function combatChoose(dt){
   if(!ent || !ent.alive){ c.turn++; return; }
   if(o.type==='ally'){
     const tgt=c.enemies.find(e=>e.hp>0);
-    if(tgt){ dealEnemyDamage(ent,tgt,20); addLog(`${ent.name} soutient : 20 dégâts`);
-      const ep=enemyPos(tgt.index,c.enemies.length); burst(ep.x,ep.y,'#86efac',8,90); }
-    c.act={kind:'ally',actor:ent,t:0,dur:0.45}; c.phase='act'; return;
+    if(tgt){ dealEnemyDamage(ent,tgt,20); addLog(`${ent.name} frappe l'Horloge : 20 dégâts !`);
+      const ep=enemyPos(tgt.index,c.enemies.length);
+      burst(ep.x,ep.y,'#86efac',14,120,{up:20}); ring(ep.x,ep.y,'#4ade80',40); floater(ep.x,ep.y-18,'-20','#86efac',12); addShake(4,0.2); }
+    c.act={kind:'ally',actor:ent,t:0,dur:0.5}; c.phase='act'; return;
   }
   const h=ent;
   if(getStatus(h,'stun')||getStatus(h,'sleep')){ addLog(`${h.name} ne peut pas agir !`);
@@ -1273,7 +1274,8 @@ function combatAct(dt){
   const c=combat, a=c.act; a.t+=dt;
   if(a.kind==='hero'){ const k=a.t/a.dur; const lunge=k<0.4?easeOutCubic(k/0.4):1-easeInOut((k-0.4)/0.6); a.actor.oy=-lunge*26;
     if(!a.applied && k>=0.4){ a.applied=true; applyHeroEffect(a.actor,a.atk,a.target); } }
-  if(a.t>=a.dur){ a.actor.oy=0; c.act=null; c.turn++; if(c.phase==='act')c.phase='choose'; }
+  if(a.kind==='ally'){ const k=a.t/a.dur; const lunge=k<0.45?easeOutCubic(k/0.45):1-easeInOut((k-0.45)/0.55); a.actor.ox=lunge*34; a.actor.oy=-lunge*18; }
+  if(a.t>=a.dur){ if(a.actor){a.actor.oy=0; a.actor.ox=0;} c.act=null; c.turn++; if(c.phase==='act')c.phase='choose'; }
 }
 function buildEnemyQueue(){
   const c=combat; c.queue=[];
@@ -1298,7 +1300,7 @@ function nextAttack(){
   else targets=[alive[Math.floor(crand()*alive.length)]];
   const unavoid=unavoidable||(atk.effect==='unavoidable_low'&&targets.some(h=>h.hp<h.maxHp*0.4));
   c.cur={ enemy, atk, targets, idx:0, unavoid, results:targets.map(()=>false) };
-  c.banner=null; c.phase='announce'; c.timer=1.2; enemy.oy=8; addShake(4,0.3);
+  c.banner=null; c.phase='announce'; c.timer=1.8; enemy.oy=8; addShake(4,0.3);
 }
 function combatAnnounce(dt){
   const c=combat; c.timer-=dt; c.cur.enemy.oy=lerp(c.cur.enemy.oy,0,clamp(dt*6,0,1));
@@ -1407,10 +1409,11 @@ function drawCombat(){
   // allies — prominent front line (they fight WITH us in boss 1)
   c.allies.forEach((a,i)=>{ if(!a.alive)return; const p=allyPos(i,c.allies.length);
     const o=c.order[c.turn], active=o&&o.type==='ally'&&o.idx===i;
-    if(active){ oc.globalAlpha=0.28; circle(p.x,p.y+12,16,a.color); oc.globalAlpha=1; }
-    drawHero(p.x,p.y,{color:a.color,shade:a.shade},1.6,{bob:gtime*3+i});
+    const x=p.x+(a.ox||0), y=p.y+(a.oy||0);
+    if(active){ oc.globalAlpha=0.32; circle(p.x,p.y+12,18,a.color); oc.globalAlpha=1; }
+    drawHero(x,y,{color:a.color,shade:a.shade},1.7,{bob:gtime*3+i});
     fillRect(p.x-22,p.y+16,44,5,'#0b0b14'); fillRect(p.x-21,p.y+17,42*(a.displayHp/a.maxHp),3,'#22c55e');
-    text(a.name.slice(0,6),p.x,p.y-26,a.color,5,'center'); text('ALLIÉ',p.x,p.y+30,'#16a34a',4,'center'); });
+    text(a.name.slice(0,7),p.x,p.y-26,a.color,5,'center'); text('⚔ ALLIÉ',p.x,p.y+30,'#22c55e',5,'center'); });
 
   const hn=c.heroes.length;
   c.heroes.forEach((h,i)=>{ const p=heroPos(i,hn), x=p.x+h.ox, y=p.y+h.oy;
@@ -1424,7 +1427,7 @@ function drawCombat(){
   const o=c.order[c.turn];
   if(o&&o.type==='hero'&&c.phase==='choose'){ const h=c.heroes[o.idx]; if(h&&h.alive){ if(c.targetMode) drawTargetMenu(h); else drawActionMenu(h); } }
 
-  if(c.phase==='announce'&&c.cur){ const k=1-clamp(c.timer/1.2,0,1), a=Math.min(1,k*3); oc.globalAlpha=a;
+  if(c.phase==='announce'&&c.cur){ const k=1-clamp(c.timer/1.8,0,1), a=Math.min(1,k*3); oc.globalAlpha=a;
     roundRect(W/2-200,H/2-94,400,52,6,'rgba(8,4,4,0.9)'); strokeRect(W/2-200,H/2-94,400,52,'#dc2626',2);
     text(c.cur.enemy.name+' utilise',W/2,H/2-72,'#f87171',7,'center'); text(c.cur.atk.name,W/2,H/2-52,'#fecaca',c.cur.atk.name.length>22?8:11,'center'); oc.globalAlpha=1; }
   if(c.phase==='dodge'&&c.qte) drawDodgeQTE();
@@ -1469,7 +1472,8 @@ function drawTargetMenu(h){
 }
 function drawDodgeQTE(){
   const c=combat, q=c.qte; if(!q)return; const armed=q.t>=q.delay; const left=q.window-(q.t-q.delay); const pct=armed?clamp(left/q.window,0,1):1;
-  roundRect(W/2-180,H/2-86,360,120,8,'rgba(6,6,16,0.94)'); strokeRect(W/2-180,H/2-86,360,120,'#6366f1',2); text('ESQUIVE — '+q.h.name,W/2,H/2-66,q.h.color,9,'center');
+  roundRect(W/2-180,H/2-92,360,138,8,'rgba(6,6,16,0.94)'); strokeRect(W/2-180,H/2-92,360,138,'#6366f1',2);
+  text('ESQUIVE — '+q.h.name,W/2,H/2-72,q.h.color,9,'center'); text(q.atk.name,W/2,H/2-54,'#fca5a5',q.atk.name.length>22?6:8,'center');
   if(!armed){ if(Math.sin(q.t*16)>0) text('PRÉPARE-TOI',W/2,H/2-20,'#fbbf24',11,'center'); const tr=lerp(60,18,q.t/q.delay);
     oc.strokeStyle='#f59e0b'; oc.lineWidth=2; oc.beginPath(); oc.arc(W/2,H/2-12,tr,0,TAU); oc.stroke();
   } else { const col=pct>0.4?'#4ade80':pct>0.2?'#f59e0b':'#ef4444'; const sc=easeOutBack(clamp((q.t-q.delay)*6,0,1));
