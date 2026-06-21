@@ -1,0 +1,8 @@
+# Vercel ne sert QUE le frontend statique (index.html, game.js, assets).
+# On exclut tout ce qui est "serveur/Node" pour que Vercel ne le déploie pas comme une fonction.
+server.js
+package.json
+package-lock.json
+node_modules
+render.yaml
+DEPLOIEMENT.md

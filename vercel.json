@@ -1,7 +1,7 @@
 {
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ],
+  "framework": null,
+  "buildCommand": null,
+  "outputDirectory": ".",
   "headers": [
     {
       "source": "/(.*)",
