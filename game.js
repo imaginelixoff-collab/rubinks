@@ -1144,7 +1144,7 @@ function startCombat(enemies, allies, bossId){
 function buildOrder(){
   combat.order=[];
   combat.heroes.forEach((h,i)=>{ if(h.alive) combat.order.push({type:'hero',idx:i}); });
-  combat.allies.forEach((a,i)=>{ if(a.alive) combat.order.push({type:'ally',idx:i}); });
+  // les PNJ alliés sont de simples FIGURANTS : aucun tour, aucune attaque
   combat.turn=0;
 }
 function curEntity(){ const o=combat.order[combat.turn]; if(!o)return null; return o.type==='hero'?combat.heroes[o.idx]:combat.allies[o.idx]; }
@@ -1407,13 +1407,10 @@ function drawCombat(){
     oc.globalAlpha=1; });
 
   // allies — prominent front line (they fight WITH us in boss 1)
+  // figurants : présents à nos côtés, mais ne combattent pas (pas de barre de PV, pas d'attaque)
   c.allies.forEach((a,i)=>{ if(!a.alive)return; const p=allyPos(i,c.allies.length);
-    const o=c.order[c.turn], active=o&&o.type==='ally'&&o.idx===i;
-    const x=p.x+(a.ox||0), y=p.y+(a.oy||0);
-    if(active){ oc.globalAlpha=0.32; circle(p.x,p.y+12,18,a.color); oc.globalAlpha=1; }
-    drawHero(x,y,{color:a.color,shade:a.shade},1.7,{bob:gtime*3+i});
-    fillRect(p.x-22,p.y+16,44,5,'#0b0b14'); fillRect(p.x-21,p.y+17,42*(a.displayHp/a.maxHp),3,'#22c55e');
-    text(a.name.slice(0,7),p.x,p.y-26,a.color,5,'center'); text('⚔ ALLIÉ',p.x,p.y+30,'#22c55e',5,'center'); });
+    drawHero(p.x,p.y,{color:a.color,shade:a.shade},1.6,{bob:gtime*3+i});
+    text(a.name.slice(0,7),p.x,p.y-26,a.color,5,'center'); text('ALLIÉ',p.x,p.y+24,'#16a34a',5,'center'); });
 
   const hn=c.heroes.length;
   c.heroes.forEach((h,i)=>{ const p=heroPos(i,hn), x=p.x+h.ox, y=p.y+h.oy;
