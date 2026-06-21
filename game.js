@@ -195,18 +195,19 @@ const HORLOGE_ATTACKS = [
   { name:'#RUBIKAFOREVER',                   dir:'↓', dmg:30, effect:'all_damage', all:true        },
   { name:'7J/7',                             dir:'→', dmg:35, effect:'double_low_hp'               },
 ];
-const AXEL_ATTACKS = [
-  { name:'Abérance',    dir:'→', dmg:22, effect:'cancel_buff'             },
-  { name:'Gourmandise', dir:'↓', dmg:18, effect:'steal_energy', amount:10 },
+const THOMAS_ATTACKS = [
+  { name:'Enfin berf', dir:'←', dmg:0,  effect:'random_5_45'            },
+  { name:'Misogynie',  dir:'↑', dmg:22, effect:'atk_debuff_male', dur:2 },
+  { name:'Dyslexie',   dir:'→', dmg:18, effect:'confuse'               },
 ];
-const BERENICE_ATTACKS = [
-  { name:'Gougougaga', dir:'←', dmg:28, effect:'stun'               },
-  { name:'Immaturité', dir:'↑', dmg:20, effect:'dodge_debuff', dur:1 },
+const CELESTINE_ATTACKS = [
+  { name:'TDAH',       dir:'←', dmg:17, effect:'skip_turn' },
+  { name:'Gougougaga', dir:'→', dmg:21, effect:'stun'      },
 ];
-const THEO_ATTACKS = [
-  { name:"Manque d'investissement", dir:'→', dmg:15, effect:'delayed' },
-  { name:'Enfin berf',              dir:'↓', dmg:0,  effect:'random_5_45' },
-  { name:'Énèrvement injustifié',   dir:'←', dmg:30, effect:'highest_hp'  },
+const CARLA_ATTACKS = [
+  { name:'Énervement injustifié', dir:'←', dmg:22, effect:'highest_hp'                 },
+  { name:'Manque de respect',     dir:'↑', dmg:18, effect:'energy_drain_all', all:true },
+  { name:'Actif agressif',        dir:'→', dmg:28, effect:'delayed'                    },
 ];
 const PIERRE_ATTACKS = [
   { name:'INTERROGATION SURPRISE', dir:'↑', dmg:30, effect:'stun'                       },
@@ -1123,9 +1124,9 @@ function startBoss1(){
 function startBoss2(){
   const dh=v=>Math.round(v*DIFF().hp);
   const e=[
-    mkCombatant({name:'THOMAS',color:'#22C55E',shade:'#15803d',hp:dh(150),maxHp:dh(150),attacks:AXEL_ATTACKS,kind:'traitor',status:[],def:NPC_DEFS[0]},{}),
-    mkCombatant({name:'CÉLESTINE',color:'#EF4444',shade:'#b91c1c',hp:dh(130),maxHp:dh(130),attacks:BERENICE_ATTACKS,kind:'traitor',status:[],def:NPC_DEFS[1]},{}),
-    mkCombatant({name:'CARLA',color:'#3B82F6',shade:'#1d4ed8',hp:dh(140),maxHp:dh(140),attacks:THEO_ATTACKS,kind:'traitor',status:[],def:NPC_DEFS[2]},{}),
+    mkCombatant({name:'THOMAS',color:'#22C55E',shade:'#15803d',hp:dh(150),maxHp:dh(150),attacks:THOMAS_ATTACKS,kind:'traitor',status:[],def:NPC_DEFS[0]},{}),
+    mkCombatant({name:'CÉLESTINE',color:'#EF4444',shade:'#b91c1c',hp:dh(130),maxHp:dh(130),attacks:CELESTINE_ATTACKS,kind:'traitor',status:[],def:NPC_DEFS[1]},{}),
+    mkCombatant({name:'CARLA',color:'#3B82F6',shade:'#1d4ed8',hp:dh(140),maxHp:dh(140),attacks:CARLA_ATTACKS,kind:'traitor',status:[],def:NPC_DEFS[2]},{}),
   ];
   startCombat(e,[],'boss2');
 }
